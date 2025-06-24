@@ -1,0 +1,8 @@
+rich
+pyyaml
+pandas>
+pyarrow
+openai
+transformers
+torch
+accelerate
