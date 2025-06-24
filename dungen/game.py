@@ -173,8 +173,8 @@ class Game:
                 {"role": "user", "content": prompt},
             ],
         )
-        self.console.print(render_intro_panel("DEBUG [INPUT]", f"[SYSTEM PROMPT]\n{system_prompt}\n\n[PROMPT]\n{prompt}", self.console))
-        self.console.print(render_intro_panel("DEBUG [SUMMARY]", response.choices[0].message.content.strip(), self.console))
+        #self.console.print(render_intro_panel("DEBUG [INPUT]", f"[SYSTEM PROMPT]\n{system_prompt}\n\n[PROMPT]\n{prompt}", self.console))
+        #self.console.print(render_intro_panel("DEBUG [SUMMARY]", response.choices[0].message.content.strip(), self.console))
         return response.choices[0].message.content.strip()
 
 
@@ -267,7 +267,7 @@ class Game:
                 device_input += f"<|im_start|>assistant\n{message['content']}<|im_end|>\n"
         
         device_input += f"<|im_start|>assistant\n"
-        self.console.print(render_intro_panel("DEBUG [INPUT]", device_input, self.console))
+        #self.console.print(render_intro_panel("DEBUG [INPUT]", device_input, self.console))
 
         if self.remote_inference:
             content = self.vllm_pipeline(device_input)
@@ -354,8 +354,8 @@ class Game:
                 }
             }
         )
-        self.console.print(render_intro_panel("DEBUG [INPUT]", f"[SYSTEM PROMPT]\n{system_prompt}\n\n[INPUT]\n{input}", self.console))
-        self.console.print(render_intro_panel("DEBUG [JSON]", response.choices[0].message.content.strip(), self.console))
+        #self.console.print(render_intro_panel("DEBUG [INPUT]", f"[SYSTEM PROMPT]\n{system_prompt}\n\n[INPUT]\n{input}", self.console))
+        #self.console.print(render_intro_panel("DEBUG [JSON]", response.choices[0].message.content.strip(), self.console))
         return response.choices[0].message.content.strip()
 
 
@@ -460,9 +460,9 @@ class Game:
         self.console.print(render_info_panel("INFERENCE", model_info, self.console))
         
         if self.remote_inference:
-            settings_passed = f"{self.config.game_settings_path} | Using Remote vLLM (RunPod)"
+            settings_passed = f"{self.config.game_settings_path} | Remote vLLM (RunPod)"
         else:
-            settings_passed = f"{self.config.game_settings_path}"
+            settings_passed = f"{self.config.game_settings_path} | Local Device Inference"
         narrative_prompt = f"{self.config.narrative_prompt}"
         self.console.print(render_info_panel("SETTINGS", settings_passed, self.console))
         self.console.print(render_status_panel("SYSTEM PROMPT", narrative_prompt, self.console))
@@ -473,12 +473,6 @@ class Game:
             f"HEALTH: {self.player.health} | STAMINA: {self.player.stamina}"
         )
         self.console.print(render_info_panel("CHARACTER", character_info, self.console))
-
-        self.console.print(
-            render_intro_panel(
-                "WELCOME TO DUNGEN!", "A generative zork-like dungeon explorer that dynamically creates a world of mystery, peril, and unexpected discoveries. As you descend deeper into LLM generated labyrinths, your choices will shape the story, the dangers you face, and the secrets you uncover.", self.console
-            )
-        )
         
         if self.last_chapter:
             self.console.print(render_intro_panel("ONCE UPON A TIME...", self.last_chapter, self.console))
