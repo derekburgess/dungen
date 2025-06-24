@@ -14,8 +14,18 @@ cd `dungen`
 
 `pip install .`
 
-Copy `config.yaml` to setup your character and adjust model/system prompt/theme. 
+Use one of the demo settings files, `fantasy.yaml` or `cyberpunk.yaml`, or copy one and define your own theme and/or character.
 
-Or use one of the demo configs, `fantasy.yaml` or `cyberpunk.yaml`.
+`dungen --settings file.yaml`
 
-`dungen --config file.yaml`
+This will run the Wayfarer-12B model on your local device. Works, but slow on a 3090.
+
+Passing `--vllm` will run the Wayfarer-12B model on RunPod using a serverless vLLM endpoint.
+
+This assumes you are familair with RunPod and setting a serverless endpoint.
+
+Set `REQUEST_KEY` env variable. This is your RunPod API Key.
+
+Update the `endpoint_id` in the `config.yaml` file. This is your RunPod endpoint id.
+
+`dungen --settings file.yaml --vllm`

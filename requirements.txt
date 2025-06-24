@@ -1,6 +1,6 @@
 rich
+pandas
 pyyaml
-pandas>
 pyarrow
 openai
 transformers

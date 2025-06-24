@@ -11,6 +11,7 @@ from rich.text import Text
 from openai import OpenAI
 import transformers
 import torch
+import requests
 
 
 @dataclass
@@ -36,19 +37,37 @@ class EncounterEntry:
 
 
 class Config:
-    def __init__(self, path: str = "config.yaml") -> None:
-        with open(path) as config_file:
-            config_parameters = yaml.safe_load(config_file) or {}
+    def __init__(self, inference_config_path: str = "config.yaml", game_settings_path: str = None) -> None:
+        self.inference_config_path = inference_config_path
+        self.game_settings_path = game_settings_path
+        
+        with open(inference_config_path) as config_file:
+            model_parameters = yaml.safe_load(config_file) or {}
+        
+        if game_settings_path:
+            with open(game_settings_path) as game_file:
+                game_parameters = yaml.safe_load(game_file) or {}
+        else:
+            game_parameters = {}
+        
+        self.narrative_model = model_parameters.get("narrative_model", "LatitudeGames/Wayfarer-12B")
+        self.max_tokens = model_parameters.get("max_tokens", 384)
+        self.temperature = model_parameters.get("temperature", 0.8)
+        self.repetition_penalty = model_parameters.get("repetition_penalty", 1.05)
+        self.min_p = model_parameters.get("min_p", 0.025)
+        self.endpoint_id = model_parameters.get("endpoint_id")
+        self.assistant_model = model_parameters.get("assistant_model", "gpt-4o-mini")
+        
+        system_prompt_base = model_parameters["system_prompt_base"]
+        narrative_prompt = game_parameters["system_prompt"]
+        self.narrative_prompt = narrative_prompt
+        self.system_prompt = f"{narrative_prompt}\n\n{system_prompt_base}"
+        
+        game_settings = game_parameters.get("game_settings", {})
+        self.message_history_limit = game_settings.get("message_history_limit", 10)
+        self.recent_encounters_limit = game_settings.get("recent_encounters_limit", 5)
 
-        self.system_prompt = config_parameters.get("system_prompt")
-        self.assistant_model = config_parameters.get("assistant_model", "gpt-4o-mini")
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.narrative_model = config_parameters.get("narrative_model", "LatitudeGames/Wayfarer-12B")
-        self._device_pipeline = None
-        game_parameters = config_parameters.get("game_settings", {})
-        self.message_history_limit = game_parameters.get("message_history_limit", 10)
-        self.recent_encounters_limit = game_parameters.get("recent_encounters_limit", 5)
-        player_character = config_parameters.get("player")
+        player_character = game_parameters.get("player")
         self.player = Player(
             name=player_character.get("name"),
             age=player_character.get("age"),
@@ -93,16 +112,24 @@ def render_end_panel(title: str, message: str, console: Console) -> Panel:
 
 
 class Game:
-    def __init__(self, config_path: str = "config.yaml") -> None:
+    def __init__(self, inference_config_path: str = "config.yaml", game_settings_path: str = None, remote_inference: bool = False) -> None:
+        self._device_pipeline = None
+        self.remote_inference = remote_inference
+        self.request_key = os.getenv("REQUEST_KEY")
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        
         self.console = Console()
-        self.config = Config(config_path)
+
+        self.config = Config(inference_config_path, game_settings_path)
         self.player = self.config.player
         self.turn = 0
         self.encounter_log: List[EncounterEntry] = []
-        self._device_pipeline = None
 
-        self.narrative_file = os.path.splitext(config_path)[0] + ".parquet"
+        if game_settings_path:
+            self.narrative_file = os.path.splitext(game_settings_path)[0] + ".parquet"
+        else:
+            self.narrative_file = "game.parquet"
+            
         if os.path.exists(self.narrative_file):
             dataframe = pd.read_parquet(self.narrative_file)
             self.chapter_index = len(dataframe) + 1
@@ -146,7 +173,7 @@ class Game:
                 {"role": "user", "content": prompt},
             ],
         )
-        #self.console.print(render_intro_panel("DEBUG [PROMPT]", f"[SYSTEM PROMPT]\n{system_prompt}\n\n[PROMPT]\n{prompt}", self.console))
+        #self.console.print(render_intro_panel("DEBUG [INPUT]", f"[SYSTEM PROMPT]\n{system_prompt}\n\n[PROMPT]\n{prompt}", self.console))
         #self.console.print(render_intro_panel("DEBUG [SUMMARY]", response.choices[0].message.content.strip(), self.console))
         return response.choices[0].message.content.strip()
 
@@ -164,6 +191,40 @@ class Game:
         self.chapter_index += 1
 
 
+    def vllm_pipeline(self, input: str) -> str:
+        url = f"https://api.runpod.ai/v2/{self.config.endpoint_id}/runsync"
+        headers = {
+            "Authorization": f"Bearer {self.request_key}",
+            "Content-Type": "application/json"
+        }
+
+        data = {
+            "input": {
+                "prompt": input,
+                "sampling_params": {
+                    "max_tokens": self.config.max_tokens,
+                    "temperature": self.config.temperature,
+                    "repetition_penalty": self.config.repetition_penalty,
+                    "min_p": self.config.min_p
+                }
+            }
+        }
+
+        response = requests.post(url, headers=headers, json=data)
+        response.raise_for_status()
+        
+        result = response.json()
+        output = result.get("output")
+        
+        tokens = output[0]["choices"][0]["tokens"]
+        response_text = " ".join(map(str, tokens))
+        
+        if response_text.endswith("<|im_end|>"):
+            response_text = response_text[:-10].strip()
+            
+        return response_text
+
+
     def device_pipeline(self, input: str) -> str:
         if self._device_pipeline is None:
             self._device_pipeline = transformers.pipeline(
@@ -175,11 +236,11 @@ class Game:
         
         outputs = self._device_pipeline(
             input,
-            max_new_tokens=384,
+            max_new_tokens=self.config.max_tokens,
             do_sample=True,
-            temperature=0.8,
-            repetition_penalty=1.05,
-            min_p=0.025
+            temperature=self.config.temperature,
+            repetition_penalty=self.config.repetition_penalty,
+            min_p=self.config.min_p
         )
         
         response = outputs[0]["generated_text"]
@@ -206,9 +267,13 @@ class Game:
                 device_input += f"<|im_start|>assistant\n{message['content']}<|im_end|>\n"
         
         device_input += f"<|im_start|>assistant\n"
-        #self.console.print(render_intro_panel("DEBUG [DEVICE INPUT]", device_input, self.console))
+        #self.console.print(render_intro_panel("DEBUG [INPUT]", device_input, self.console))
 
-        content = self.device_pipeline(device_input)
+        if self.remote_inference:
+            content = self.vllm_pipeline(device_input)
+        else:
+            content = self.device_pipeline(device_input)
+
         self.messages.append({"role": "assistant", "content": content})
         limit = self.config.message_history_limit
         if limit and len(self.messages) > limit:
@@ -290,7 +355,7 @@ class Game:
             }
         )
         #self.console.print(render_intro_panel("DEBUG [INPUT]", f"[SYSTEM PROMPT]\n{system_prompt}\n\n[INPUT]\n{input}", self.console))
-        #self.console.print(render_intro_panel("DEBUG [JSON RESPONSE]", response.choices[0].message.content.strip(), self.console))
+        #self.console.print(render_intro_panel("DEBUG [JSON]", response.choices[0].message.content.strip(), self.console))
         return response.choices[0].message.content.strip()
 
 
@@ -391,17 +456,16 @@ class Game:
 
 
     def start(self):
-        self.console.print(
-            render_intro_panel(
-                "WELCOME TO DUNGEN!", "A generative zork-like dungeon explorer that dynamically creates a world of mystery, peril, and unexpected discoveries. As you descend deeper into LLM generated labyrinths, your choices will shape the story, the dangers you face, and the secrets you uncover.", self.console
-            )
-        )
-        
-        if self.last_chapter:
-            self.console.print(render_intro_panel("ONCE UPON A TIME...", self.last_chapter, self.console))
-
         model_info = f"{self.config.narrative_model} (Narrative) | {self.config.assistant_model} (Assistant)"
-        self.console.print(render_info_panel("CONFIG", model_info, self.console))
+        self.console.print(render_info_panel("INFERENCE", model_info, self.console))
+        
+        if self.remote_inference:
+            settings_passed = f"{self.config.game_settings_path} | Remote vLLM (RunPod)"
+        else:
+            settings_passed = f"{self.config.game_settings_path} | Local Device Inference"
+        narrative_prompt = f"{self.config.narrative_prompt}"
+        self.console.print(render_info_panel("SETTINGS", settings_passed, self.console))
+        self.console.print(render_status_panel("SYSTEM PROMPT", narrative_prompt, self.console))
 
         character_info = (
             f"NAME: {self.player.name} | AGE: {self.player.age} | GENDER: {self.player.gender}\n"
@@ -409,14 +473,18 @@ class Game:
             f"HEALTH: {self.player.health} | STAMINA: {self.player.stamina}"
         )
         self.console.print(render_info_panel("CHARACTER", character_info, self.console))
+        
+        if self.last_chapter:
+            self.console.print(render_intro_panel("ONCE UPON A TIME...", self.last_chapter, self.console))
 
         starting_input = self.turn_context("So it begins...")
-
         intro_content = self.generate_narrative(starting_input)
         intro_json = self.check_response(intro_content)
         narrative, meta = self.parse_response(intro_json)
+
         self.console.print(render_response_panel("DUNGEN MASTER", narrative, self.console))
         self.apply_metadata(meta)
+
         character_info = f"{self.player.health} HP | {self.player.stamina} STA"
         self.console.print(render_info_panel("CHARACTER", character_info, self.console))
 
@@ -436,10 +504,18 @@ class Game:
 
 def main():
     parser = argparse.ArgumentParser(description="Play DUNGEN!")
-    parser.add_argument("--config", default="config.yaml", help="Path to game and player configuration YAML file")
+    parser.add_argument("--inference", default="config.yaml", help="Path to model configuration YAML file")
+    parser.add_argument("--settings", help="Path to game configuration YAML file (e.g., cyberpunk.yaml, fantasy.yaml)")
+    parser.add_argument("--vllm", action="store_true", help="Use vLLM endpoint(RunPod) for narrative generation")
     args = parser.parse_args()
-    Game(config_path=args.config).start()
-
+    console = Console()
+    
+    if not args.settings:
+        console.print(render_end_panel("ERROR", "--settings is required. Please specify a game settings file (e.g., cyberpunk.yaml, fantasy.yaml)", console))
+        console.print(render_info_panel("TIP", "You can also copy one of the demo settings files and modify it to your liking.", console))
+        return
+        
+    Game(inference_config_path=args.inference, game_settings_path=args.settings, remote_inference=args.vllm).start()
 
 if __name__ == "__main__":
     main()

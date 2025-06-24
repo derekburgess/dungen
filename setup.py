@@ -25,7 +25,7 @@ setup(
     # https://packaging.python.org/en/latest/single_source_version.html
     version='0.0.1',
 
-    description='A generative rogue-like dungeon explorer that dynamically creates a world of mystery, peril, and unexpected discoveries. As you descend deeper into LLM generated labyrinths, your choices will shape the story, the dangers you face, and the secrets you uncover.',
+    description='A generative zork-like dungeon explorer that dynamically creates a world of mystery, peril, and unexpected discoveries. As you descend deeper into LLM generated labyrinths, your choices will shape the story, the dangers you face, and the secrets you uncover.',
     long_description=long_description,
 
     # Choose your license
@@ -46,7 +46,7 @@ setup(
     ],
 
     # What does your project relate to?
-    keywords='game, rogue-like, dungeon, adventure, text-based',
+    keywords='game, zork-like, dungeon, adventure, text-based',
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
@@ -64,6 +64,7 @@ setup(
         'rich',
         'pandas',
         'pyyaml',
+        'pyarrow',
         'openai',
         'transformers',
         'torch',
