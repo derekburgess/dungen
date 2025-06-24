@@ -55,7 +55,7 @@ class Config:
         self.temperature = model_parameters.get("temperature", 0.8)
         self.repetition_penalty = model_parameters.get("repetition_penalty", 1.05)
         self.min_p = model_parameters.get("min_p", 0.025)
-        self.endpoint_id = model_parameters.get("endpoint_id", "13dt9xrkm70mz8")
+        self.endpoint_id = model_parameters.get("endpoint_id")
         self.assistant_model = model_parameters.get("assistant_model", "gpt-4o-mini")
         
         system_prompt_base = model_parameters["system_prompt_base"]
