@@ -12,9 +12,6 @@ from flask import Flask, send_from_directory
 from flask_socketio import SocketIO, emit
 
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-
-
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
@@ -111,14 +108,9 @@ def index():
     return send_from_directory('.', 'index.html')
 
 
-@app.route('/script.js')
-def script():
-    return send_from_directory('.', 'script.js')
-
-
-@app.route('/node_modules/<path:filename>')
-def node_modules(filename):
-    return send_from_directory('node_modules', filename)
+@app.route('/dist/<path:filename>')
+def dist(filename):
+    return send_from_directory('dist', filename)
 
 
 @socketio.on('connect')

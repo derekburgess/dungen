@@ -17,7 +17,7 @@ Set `HUGGINGFACE_API_KEY` env variable.
 
 cd `dungen`
 
-`pip install .`
+`pip install -e .`
 
 ## USAGE!
 

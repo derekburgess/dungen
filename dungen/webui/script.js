@@ -1,3 +1,8 @@
+import { Terminal } from 'xterm';
+import { FitAddon } from 'xterm-addon-fit';
+import { io } from 'socket.io-client';
+import 'xterm/css/xterm.css';
+
 class DungenWebUI {
     constructor() {
         this.terminal = null;
@@ -38,7 +43,7 @@ class DungenWebUI {
 
         this.terminal.open(document.getElementById('terminal'));
         
-        const fitAddon = new FitAddon.FitAddon();
+        const fitAddon = new FitAddon();
         this.terminal.loadAddon(fitAddon);
         fitAddon.fit();
 
