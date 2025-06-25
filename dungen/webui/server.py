@@ -102,27 +102,34 @@ class GameProcess:
             size = struct.pack('HHHH', rows, cols, 0, 0)
             fcntl.ioctl(self.master_fd, termios.TIOCSWINSZ, size)
 
+
 game_process = GameProcess()
+
 
 @app.route('/')
 def index():
     return send_from_directory('.', 'index.html')
 
+
 @app.route('/script.js')
 def script():
     return send_from_directory('.', 'script.js')
+
 
 @app.route('/node_modules/<path:filename>')
 def node_modules(filename):
     return send_from_directory('node_modules', filename)
 
+
 @socketio.on('connect')
 def handle_connect():
     print('[CLIENT CONNECTED]')
 
+
 @socketio.on('disconnect')
 def handle_disconnect():
     print('[CLIENT DISCONNECTED]')
+
 
 @socketio.on('start_game')
 def handle_start_game(data):
@@ -144,20 +151,24 @@ def handle_start_game(data):
         output_thread.daemon = True
         output_thread.start()
 
+
 @socketio.on('stop_game')
 def handle_stop_game():
     game_process.stop()
     emit('game_stopped')
+
 
 @socketio.on('game_input')
 def handle_game_input(data):
     if game_process.running:
         game_process.send_input(data)
 
+
 @socketio.on('resize')
 def handle_resize(data):
     if game_process.running:
         game_process.resize({'cols': data['cols'], 'rows': data['rows']})
+
 
 if __name__ == '__main__':
     print("Starting DUNGEN! Web UI server...")
