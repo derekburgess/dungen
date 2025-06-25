@@ -1,4 +1,5 @@
 import os
+import time
 import yaml
 import argparse
 import pandas as pd
@@ -82,43 +83,38 @@ class Config:
 
 
 def render_intro_panel(title: str, message: str, console: Console) -> Panel:
-    width = console.size.width
-    return Panel(Text(message, justify="left"), title=f"{title}", border_style="white", width=width)
+    return Panel(Text(message, justify="left"), title=f"{title}", border_style="white")
 
 
 def render_info_panel(title: str, message: str, console: Console) -> Panel:
-    width = console.size.width
-    return Panel(Text(message, justify="center"), title=f"{title}", border_style="yellow", width=width)
+    return Panel(Text(message, justify="center"), title=f"{title}", border_style="yellow")
 
 
 def render_input_panel(title: str, message: str, console: Console) -> Panel:
-    width = console.size.width
-    return Panel(Text(message, justify="center"), title=f"{title}", border_style="blue", width=width)
+    return Panel(Text(message, justify="center"), title=f"{title}", border_style="blue")
 
 
 def render_response_panel(title: str, message: str, console: Console) -> Panel:
-    width = console.size.width
-    return Panel(Text(message, justify="left"), title=f"{title}", border_style="green", width=width)
+    return Panel(Text(message, justify="left"), title=f"{title}", border_style="green")
 
 
 def render_status_panel(title: str, message: str, console: Console) -> Panel:
-    width = console.size.width
-    return Panel(Text(message, justify="left"), title=f"{title}", border_style="yellow", width=width)
+    return Panel(Text(message, justify="left"), title=f"{title}", border_style="yellow")
 
 
 def render_end_panel(title: str, message: str, console: Console) -> Panel:
-    width = console.size.width
-    return Panel(Text(message, justify="center"), title=f"{title}", border_style="red", width=width)
+    return Panel(Text(message, justify="center"), title=f"{title}", border_style="red")
 
 
 class Game:
-    def __init__(self, inference_config_path: str = "config.yaml", game_settings_path: str = None, remote_inference: bool = False) -> None:
+    def __init__(self, inference_config_path: str = "config.yaml", game_settings_path: str = None, remote_inference: bool = False, webui: bool = False) -> None:
         self._device_pipeline = None
         self.remote_inference = remote_inference
         self.request_key = os.getenv("REQUEST_KEY")
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         
         self.console = Console()
+        self.webui = webui
 
         self.config = Config(inference_config_path, game_settings_path)
         self.player = self.config.player
@@ -210,19 +206,20 @@ class Game:
             }
         }
 
-        response = requests.post(url, headers=headers, json=data)
-        response.raise_for_status()
-        
-        result = response.json()
-        output = result.get("output")
-        
-        tokens = output[0]["choices"][0]["tokens"]
-        response_text = " ".join(map(str, tokens))
-        
-        if response_text.endswith("<|im_end|>"):
-            response_text = response_text[:-10].strip()
-            
-        return response_text
+        for _ in range(3):  # minimal retry loop
+            response = requests.post(url, headers=headers, json=data)
+            response.raise_for_status()
+            output = response.json().get("output")
+            if output:
+                try:
+                    tokens = output[0]["choices"][0]["tokens"]
+                    text = " ".join(map(str, tokens))
+                    return text.rstrip("<|im_end|>").strip()
+                except Exception:
+                    pass
+            time.sleep(2)
+
+        raise RuntimeError("Failed to get valid output from vLLM after retries.")
 
 
     def device_pipeline(self, input: str) -> str:
@@ -460,9 +457,11 @@ class Game:
         self.console.print(render_info_panel("INFERENCE", model_info, self.console))
         
         if self.remote_inference:
-            settings_passed = f"{self.config.game_settings_path} | Remote vLLM (RunPod)"
+            settings_filename = os.path.basename(self.config.game_settings_path) if self.config.game_settings_path else "None"
+            settings_passed = f"{settings_filename} | Remote vLLM (RunPod)"
         else:
-            settings_passed = f"{self.config.game_settings_path} | Local Device Inference"
+            settings_filename = os.path.basename(self.config.game_settings_path) if self.config.game_settings_path else "None"
+            settings_passed = f"{settings_filename} | Local Device Inference"
         narrative_prompt = f"{self.config.narrative_prompt}"
         self.console.print(render_info_panel("SETTINGS", settings_passed, self.console))
         self.console.print(render_status_panel("SYSTEM PROMPT", narrative_prompt, self.console))
@@ -490,7 +489,10 @@ class Game:
 
         while self.player.health > 0:
             self.turn += 1
-            action = self.console.input("\nREACT! >>>  ")
+            if self.webui:
+                action = input()
+            else:
+                action = self.console.input("\nREACT! >>>  ")
             if action.lower().strip() in {"quit", "exit", "run away"}:
                 self.console.print(
                     render_info_panel(
@@ -507,6 +509,8 @@ def main():
     parser.add_argument("--inference", default="config.yaml", help="Path to model configuration YAML file")
     parser.add_argument("--settings", help="Path to game configuration YAML file (e.g., cyberpunk.yaml, fantasy.yaml)")
     parser.add_argument("--vllm", action="store_true", help="Use vLLM endpoint(RunPod) for narrative generation")
+    parser.add_argument("--webui", action="store_true", help="Controls output for the Web UI")
+
     args = parser.parse_args()
     console = Console()
     
@@ -515,7 +519,7 @@ def main():
         console.print(render_info_panel("TIP", "You can also copy one of the demo settings files and modify it to your liking.", console))
         return
         
-    Game(inference_config_path=args.inference, game_settings_path=args.settings, remote_inference=args.vllm).start()
+    Game(inference_config_path=args.inference, game_settings_path=args.settings, remote_inference=args.vllm, webui=args.webui).start()
 
 if __name__ == "__main__":
     main()
