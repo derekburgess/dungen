@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DUNGEN Web UI</title>
+    <link rel="stylesheet" href="node_modules/xterm/css/xterm.css" />
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #1a1a1a;
+            font-family: 'Courier New', monospace;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #00ff00;
+        }
+        .terminal-container {
+            background-color: #000;
+            border: 2px solid #00ff00;
+            border-radius: 5px;
+            padding: 10px;
+        }
+        #terminal {
+            height: 500px;
+        }
+        .controls {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .btn {
+            background-color: #00ff00;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            margin: 0 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+        .btn:hover {
+            background-color: #00cc00;
+        }
+        .btn:disabled {
+            background-color: #666;
+            cursor: not-allowed;
+        }
+        .game-settings {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .game-settings select {
+            background-color: #333;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            padding: 5px 10px;
+            margin: 0 10px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>DUNGEN Web UI</h1>
+        </div>
+        
+        <div class="game-settings">
+            <label for="game-settings">Game Settings:</label>
+            <select id="game-settings">
+                <option value="fantasy.yaml">Fantasy</option>
+                <option value="cyberpunk.yaml">Cyberpunk</option>
+            </select>
+            <button class="btn" id="start-game">Start Game</button>
+            <button class="btn" id="stop-game" disabled>Stop Game</button>
+        </div>
+        
+        <div class="terminal-container">
+            <div id="terminal"></div>
+        </div>
+        
+        <div class="controls">
+            <button class="btn" id="clear-terminal">Clear Terminal</button>
+        </div>
+    </div>
+
+    <script src="node_modules/xterm/lib/xterm.js"></script>
+    <script src="node_modules/xterm-addon-fit/lib/xterm-addon-fit.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
