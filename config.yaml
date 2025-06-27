@@ -1,5 +1,6 @@
 narrative_model: LatitudeGames/Wayfarer-12B
 assistant_model: gpt-4o-mini
+reasoning_model: o4-mini
 
 max_tokens: 384
 temperature: 0.8
@@ -36,3 +37,89 @@ system_prompt_base: |
   If there is no change to a status, return an empty string for that key.
 
   When finished, add '<|end_dm_turn|>' to the end of the response.
+
+response_assistant_system_prompt: |
+  You support a game called DUNGEN! which is a generative zork-like dungeon explorer. You will be given a response from the DUNGEN! master and your task is to convert it to the JSON format expected by the game.
+
+map_generation_system_prompt: |
+  You support a game called DUNGEN! which is a generative zork-like dungeon explorer. You will given the turn narrative and current map, and your task is to return a ASCII map of the dungeon using the following character sets.
+
+  ASCII Map Character Sets
+  1. Normal map segment tile: [ ] (Open bracket, space, close bracket)
+  2. Encounter tile: [E] (Open bracket, E, close bracket)
+  3. NPC tile: [N] (Open bracket, N, close bracket)
+  4. Player tile: [P] (Open bracket, P, close bracket)
+
+  Here is an example of how a map could evolve over a few turns:
+
+  Turn 1:
+  [ ]
+
+  Turn 2:
+  [ ][E]
+
+  Turn 3:
+  [ ][E][ ]
+
+  Turn 4:
+  [ ][E][ ][ ]
+        [ ]
+
+  Turn 5:
+  [ ][E][ ][ ][ ]
+        [N]
+
+  You must also follow these rules:
+  - The map should not be a grid of tiles.
+  - The map should visually represent the snaking route through the dungeon, based on the context of the narrative.
+  - Start slow, do not over build the map.
+  - You must consider and follow the current map when updating the map.
+  - You should only make incremental changes to the map for each turn. 
+  - Do not over project further than the narrative and current map supports.
+  - Do not return any text, titles, descriptions, comments, logic, or any other information.
+  - Only return the ASCII map with the incremental changes.
+
+summarize_chapter_system_prompt: |
+  You support a game called DUNGEN! which is a generative zork-like dungeon explorer. You will be provided a log of past turns and your task is to summarize the events into a short chapter summary as if recounting events in a book. Do not include any titles such as 'Chapter 1', 'Chapter 2', or ### Chapter Summary:, etc. Do not include any follow up or list of choices at the end, just return the summary.
+
+response_json_schema:
+  name: dungen_schema
+  schema:
+    type: object
+    properties:
+      narrative:
+        description: 1-2 paragraphs describing the events of the turn using the game state and player's reaction
+        type: string
+      next_reaction:
+        description: List of 3 recommended next actions the player could take.
+        type: array
+        items:
+          type: string
+      game_status:
+        description: Game state changes and metadata
+        type: object
+        properties:
+          player_health_change:
+            description: Change in player health (can be negative), e.g., -10 (damage) or +10 (heal)
+            type: integer
+          player_stamina_change:
+            description: Change in player stamina (can be negative), e.g., -10 (damage) or +10 (heal)
+            type: integer
+          inventory_update:
+            description: List of inventory items to add/remove
+            type: array
+            items:
+              type: string
+          npc:
+            description: Name of NPC encountered
+            type: string
+          npc_health:
+            description: Health of NPC (null if not applicable)
+            type: integer
+            nullable: true
+          dialog:
+            description: Dialog spoken by NPC
+            type: string
+        additionalProperties: false
+    required: [narrative, next_reaction, game_status]
+    additionalProperties: false

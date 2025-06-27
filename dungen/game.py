@@ -58,11 +58,16 @@ class Config:
         self.min_p = model_parameters.get("min_p", 0.025)
         self.endpoint_id = model_parameters.get("endpoint_id")
         self.assistant_model = model_parameters.get("assistant_model", "gpt-4o-mini")
+        self.reasoning_model = model_parameters.get("reasoning_model", "o4-mini")
+        self.response_assistant_system_prompt = model_parameters.get("response_assistant_system_prompt")
+        self.response_json_schema = model_parameters.get("response_json_schema")
         
         system_prompt_base = model_parameters["system_prompt_base"]
         narrative_prompt = game_parameters["system_prompt"]
         self.narrative_prompt = narrative_prompt
         self.system_prompt = f"{narrative_prompt}\n\n{system_prompt_base}"
+        self.map_generator_system_prompt = model_parameters.get("map_generation_system_prompt")
+        self.summarize_chapter_system_prompt = model_parameters.get("summarize_chapter_system_prompt")
         
         game_settings = game_parameters.get("game_settings", {})
         self.message_history_limit = game_settings.get("message_history_limit", 10)
@@ -82,27 +87,31 @@ class Config:
         )
 
 
-def render_intro_panel(title: str, message: str, console: Console) -> Panel:
+def render_debug_panel(title: str, message: str) -> Panel:
+    return Panel(Text(message, justify="left"), title=f"{title}", border_style="bright_black")
+
+
+def render_info_panel(title: str, message: str) -> Panel:
+    return Panel(Text(message, justify="center"), title=f"{title}", border_style="bright_black")
+
+
+def render_status_panel(title: str, message: str) -> Panel:
     return Panel(Text(message, justify="left"), title=f"{title}", border_style="white")
 
 
-def render_info_panel(title: str, message: str, console: Console) -> Panel:
-    return Panel(Text(message, justify="center"), title=f"{title}", border_style="yellow")
+def render_char_panel(title: str, message: str) -> Panel:
+    return Panel(Text(message, justify="center"), title=f"{title}", border_style="white")
 
 
-def render_input_panel(title: str, message: str, console: Console) -> Panel:
-    return Panel(Text(message, justify="center"), title=f"{title}", border_style="blue")
-
-
-def render_response_panel(title: str, message: str, console: Console) -> Panel:
+def render_response_panel(title: str, message: str) -> Panel:
     return Panel(Text(message, justify="left"), title=f"{title}", border_style="green")
 
 
-def render_status_panel(title: str, message: str, console: Console) -> Panel:
-    return Panel(Text(message, justify="left"), title=f"{title}", border_style="yellow")
+def render_map_panel(title: str, message: str) -> Panel:
+    return Panel(Text(message, justify="center"), title=f"{title}", border_style="cyan")
 
 
-def render_end_panel(title: str, message: str, console: Console) -> Panel:
+def render_end_panel(title: str, message: str) -> Panel:
     return Panel(Text(message, justify="center"), title=f"{title}", border_style="red")
 
 
@@ -120,6 +129,7 @@ class Game:
         self.player = self.config.player
         self.turn = 0
         self.encounter_log: List[EncounterEntry] = []
+        self.current_map = None
 
         if game_settings_path:
             self.narrative_file = os.path.splitext(game_settings_path)[0] + ".parquet"
@@ -159,18 +169,17 @@ class Game:
 
     def summarize_chapter(self) -> str:
         text = "\n".join(f"{message['role']}: {message['content']}" for message in self.messages[1:])
-        system_prompt = ("You support a game called DUNGEN! which is a generative zork-like dungeon explorer. You will be provided a log of past turns and your task is to summarize the events into a short chapter summary as if recounting events in a book. Do not include any titles such as 'Chapter 1', 'Chapter 2', or ### Chapter Summary:, etc. Do not include any follow up or list of choices at the end, just return the summary.")
         prompt = (f"Summarize the following turn logs into a short chapter as if recounting events in a book:\n{text}")
 
         response = self.client.chat.completions.create(
             model=self.config.assistant_model,
             messages=[
-                {"role": "system", "content": system_prompt},
+                {"role": "system", "content": self.config.summarize_chapter_system_prompt},
                 {"role": "user", "content": prompt},
             ],
         )
-        #self.console.print(render_intro_panel("DEBUG [INPUT]", f"[SYSTEM PROMPT]\n{system_prompt}\n\n[PROMPT]\n{prompt}", self.console))
-        #self.console.print(render_intro_panel("DEBUG [SUMMARY]", response.choices[0].message.content.strip(), self.console))
+        #self.console.print(render_debug_panel("DEBUG [INPUT]", f"[SYSTEM PROMPT]\n{self.config.summarize_chapter_system_prompt}\n\n[PROMPT]\n{prompt}"))
+        #self.console.print(render_debug_panel("DEBUG [SUMMARY]", response.choices[0].message.content.strip()))
         return response.choices[0].message.content.strip()
 
 
@@ -206,7 +215,7 @@ class Game:
             }
         }
 
-        for _ in range(3):  # minimal retry loop
+        for _ in range(3):
             response = requests.post(url, headers=headers, json=data)
             response.raise_for_status()
             output = response.json().get("output")
@@ -251,7 +260,7 @@ class Game:
 
     def generate_narrative(self, input: str) -> str:
         self.messages.append({"role": "user", "content": input})
-        self.console.print(render_info_panel("DUNGEN MASTER", "Generating narrative...", self.console))
+        self.console.print(render_info_panel("DUNGEN MASTER", "Generating narrative..."))
 
         device_input = f"<|im_start|>system\n{self.config.system_prompt}<|im_end|>\n"
 
@@ -264,7 +273,7 @@ class Game:
                 device_input += f"<|im_start|>assistant\n{message['content']}<|im_end|>\n"
         
         device_input += f"<|im_start|>assistant\n"
-        #self.console.print(render_intro_panel("DEBUG [INPUT]", device_input, self.console))
+        #self.console.print(render_debug_panel("DEBUG [INPUT]", device_input))
 
         if self.remote_inference:
             content = self.vllm_pipeline(device_input)
@@ -276,7 +285,7 @@ class Game:
         if limit and len(self.messages) > limit:
             summary = self.summarize_chapter()
             self.save_chapter(summary)
-            self.console.print(render_intro_panel("CHAPTER", summary, self.console))
+            self.console.print(render_status_panel("CHAPTER", summary))
             self.messages = [
                 self.messages[0],
                 {"role": "system", "content": f"Once upon a time...\n{summary}"},
@@ -285,75 +294,42 @@ class Game:
     
 
     def check_response(self, input: str) -> str:
-        system_prompt = """You support a game called DUNGEN! which is a generative zork-like dungeon explorer. You will be given a response from the DUNGEN! master and your task is to convert it to the JSON format expected by the game."""
         response = self.client.chat.completions.create(
             model=self.config.assistant_model,
             messages=[
-                {"role": "system", "content": system_prompt},
+                {"role": "system", "content": self.config.response_assistant_system_prompt},
                 {"role": "user", "content": input},
             ],
             response_format={
                 "type": "json_schema",
-                "json_schema": {
-                    "name": "dungen_schema",
-                    "schema": {
-                        "type": "object",
-                        "properties": {
-                            "narrative": {
-                                "description": "1-2 paragraphs describing the events of the turn using the game state and player's reaction",
-                                "type": "string"
-                            },
-                            "next_reaction": {
-                                "description": "List of 3 recommended next actions the player could take.",
-                                "type": "array",
-                                "items": {
-                                    "type": "string"
-                                }
-                            },
-                            "game_status": {
-                                "description": "Game state changes and metadata",
-                                "type": "object",
-                                "properties": {
-                                    "player_health_change": {
-                                        "description": "Change in player health (can be negative), e.g., -10 (damage) or +10 (heal)",
-                                        "type": "integer"
-                                    },
-                                    "player_stamina_change": {
-                                        "description": "Change in player stamina (can be negative), e.g., -10 (damage) or +10 (heal)",
-                                        "type": "integer"
-                                    },
-                                    "inventory_update": {
-                                        "description": "List of inventory items to add/remove",
-                                        "type": "array",
-                                        "items": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "npc": {
-                                        "description": "Name of NPC encountered",
-                                        "type": "string"
-                                    },
-                                    "npc_health": {
-                                        "description": "Health of NPC (null if not applicable)",
-                                        "type": ["integer", "null"]
-                                    },
-                                    "dialog": {
-                                        "description": "Dialog spoken by NPC",
-                                        "type": "string"
-                                    }
-                                },
-                                "additionalProperties": False
-                            }
-                        },
-                        "required": ["narrative", "next_reaction", "game_status"],
-                        "additionalProperties": False
-                    }
-                }
+                "json_schema": self.config.response_json_schema
             }
         )
-        #self.console.print(render_intro_panel("DEBUG [INPUT]", f"[SYSTEM PROMPT]\n{system_prompt}\n\n[INPUT]\n{input}", self.console))
-        #self.console.print(render_intro_panel("DEBUG [JSON]", response.choices[0].message.content.strip(), self.console))
+        #self.console.print(render_debug_panel("DEBUG [INPUT]", f"[SYSTEM PROMPT]\n{self.config.response_assistant_system_prompt}\n\n[INPUT]\n{input}"))
+        #self.console.print(render_debug_panel("DEBUG [JSON]", response.choices[0].message.content.strip()))
         return response.choices[0].message.content.strip()
+    
+
+    def update_map(self, input: str) -> str:
+        self.console.print(render_info_panel("DUNGEN MASTER", "Updating map..."))
+        response = self.client.chat.completions.create(
+            model=self.config.reasoning_model,
+            messages=[
+                {"role": "system", "content": self.config.map_generator_system_prompt},
+                {"role": "user", "content": input},
+            ],
+        )
+        #self.console.print(render_debug_panel("DEBUG [INPUT]", f"[SYSTEM PROMPT]\n{self.config.map_generator_system_prompt}\n\n[INPUT]\n{input}"))
+        #self.console.print(render_debug_panel("DEBUG [MAP]", response.choices[0].message.content.strip()))
+        
+        content = response.choices[0].message.content.strip()
+        
+        if content.startswith("```") and content.endswith("```"):
+            content = content[3:-3].strip()
+        elif content.startswith("`") and content.endswith("`"):
+            content = content[1:-1].strip()
+        
+        return content
 
 
     def parse_response(self, content: str):
@@ -411,7 +387,7 @@ class Game:
         json_content = self.check_response(content)
         narrative, meta = self.parse_response(json_content)
         self.apply_metadata(meta)
-        self.console.print(render_response_panel("DUNGEN MASTER", narrative, self.console))
+        self.console.print(render_response_panel("DUNGEN MASTER", narrative))
         
         status_lines = []
         if isinstance(meta, dict):
@@ -441,20 +417,29 @@ class Game:
         
         if status_lines:
             status_text = "\n".join(f"{line}" for line in status_lines)
-            self.console.print(render_status_panel(f"TURN {self.turn}", status_text, self.console))
+            self.console.print(render_status_panel(f"TURN {self.turn}", status_text))
         
         character_info = f"{self.player.health} HP | {self.player.stamina} STA"
-        self.console.print(render_info_panel("CHARACTER", character_info, self.console))
+        self.console.print(render_char_panel("CHARACTER", character_info))
+
+        if self.current_map:
+            map_input = f"Narrative: {narrative}\n\nCurrent Map:\n{self.current_map}"
+        else:
+            map_input = f"Narrative: {narrative}"
+        
+        updated_map = self.update_map(map_input)
+        self.console.print(render_map_panel("MAP", updated_map))
+        self.current_map = updated_map
         
         if self.player.health <= 0:
-            self.console.print(render_end_panel("DUNGEN MASTER", "muhahahaha... You have perished in the dungeon!", self.console))
+            self.console.print(render_end_panel("DUNGEN MASTER", "muhahahaha... You have perished in the dungeon!"))
             return False
         return True
 
 
     def start(self):
         model_info = f"{self.config.narrative_model} (Narrative) | {self.config.assistant_model} (Assistant)"
-        self.console.print(render_info_panel("INFERENCE", model_info, self.console))
+        self.console.print(render_info_panel("INFERENCE", model_info))
         
         if self.remote_inference:
             settings_filename = os.path.basename(self.config.game_settings_path) if self.config.game_settings_path else "None"
@@ -463,29 +448,38 @@ class Game:
             settings_filename = os.path.basename(self.config.game_settings_path) if self.config.game_settings_path else "None"
             settings_passed = f"{settings_filename} | Local Device Inference"
         narrative_prompt = f"{self.config.narrative_prompt}"
-        self.console.print(render_info_panel("SETTINGS", settings_passed, self.console))
-        self.console.print(render_status_panel("SYSTEM PROMPT", narrative_prompt, self.console))
+        self.console.print(render_info_panel("SETTINGS", settings_passed))
+        self.console.print(render_debug_panel("SYSTEM PROMPT", narrative_prompt))
 
         character_info = (
             f"NAME: {self.player.name} | AGE: {self.player.age} | GENDER: {self.player.gender}\n"
             f"RACE: {self.player.race} | ROLE: {self.player.role} | ALIGNMENT: {self.player.alignment}\n"
             f"HEALTH: {self.player.health} | STAMINA: {self.player.stamina}"
         )
-        self.console.print(render_info_panel("CHARACTER", character_info, self.console))
+        self.console.print(render_char_panel("CHARACTER", character_info))
         
         if self.last_chapter:
-            self.console.print(render_intro_panel("ONCE UPON A TIME...", self.last_chapter, self.console))
+            self.console.print(render_status_panel("ONCE UPON A TIME...", self.last_chapter))
 
         starting_input = self.turn_context("So it begins...")
         intro_content = self.generate_narrative(starting_input)
         intro_json = self.check_response(intro_content)
         narrative, meta = self.parse_response(intro_json)
 
-        self.console.print(render_response_panel("DUNGEN MASTER", narrative, self.console))
+        self.console.print(render_response_panel("DUNGEN MASTER", narrative))
         self.apply_metadata(meta)
 
         character_info = f"{self.player.health} HP | {self.player.stamina} STA"
-        self.console.print(render_info_panel("CHARACTER", character_info, self.console))
+        self.console.print(render_char_panel("CHARACTER", character_info))
+
+        if self.current_map:
+            map_input = f"Narrative: {narrative}\n\nCurrent Map:\n{self.current_map}"
+        else:
+            map_input = f"Narrative: {narrative}"
+        
+        updated_map = self.update_map(map_input)
+        self.console.print(render_map_panel("MAP", updated_map))
+        self.current_map = updated_map
 
         while self.player.health > 0:
             self.turn += 1
@@ -494,11 +488,7 @@ class Game:
             else:
                 action = self.console.input("\nREACT! >>>  ")
             if action.lower().strip() in {"quit", "exit", "run away"}:
-                self.console.print(
-                    render_info_panel(
-                        "DUNGEN MASTER", "Farewell, adventurer!", self.console
-                    )
-                )
+                self.console.print(render_info_panel("DUNGEN MASTER", "Farewell, adventurer!"))
                 break
             if not self.play_turn(action):
                 break
@@ -515,8 +505,8 @@ def main():
     console = Console()
     
     if not args.settings:
-        console.print(render_end_panel("ERROR", "--settings is required. Please specify a game settings file (e.g., cyberpunk.yaml, fantasy.yaml)", console))
-        console.print(render_info_panel("TIP", "You can also copy one of the demo settings files and modify it to your liking.", console))
+        console.print(render_end_panel("ERROR", "--settings is required. Please specify a game settings file (e.g., cyberpunk.yaml, fantasy.yaml)"))
+        console.print(render_info_panel("TIP", "You can also copy one of the demo settings files and modify it to your liking."))
         return
         
     Game(inference_config_path=args.inference, game_settings_path=args.settings, remote_inference=args.vllm, webui=args.webui).start()
