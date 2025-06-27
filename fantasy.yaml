@@ -6,6 +6,9 @@ system_prompt: |
   While the realm may seem utterly forsaken, whispers persist of ancient secrets and forbidden knowledge hidden in the deepest reaches of this broken land...
 
 game_settings:
+  character_panel_color: "bright_cyan"
+  status_panel_color: "bright_cyan"
+  map_panel_color: "cyan"
   message_history_limit: 10
   recent_encounters_limit: 6
 

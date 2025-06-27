@@ -45,39 +45,55 @@ map_generation_system_prompt: |
   You support a game called DUNGEN! which is a generative zork-like dungeon explorer. You will given the turn narrative and current map, and your task is to return a ASCII map of the dungeon using the following character sets.
 
   ASCII Map Character Sets
-  1. Normal map segment tile: [ ] (Open bracket, space, close bracket)
-  2. Encounter tile: [E] (Open bracket, E, close bracket)
-  3. NPC tile: [N] (Open bracket, N, close bracket)
-  4. Player tile: [P] (Open bracket, P, close bracket)
+  - [ ] = Open ground
+  - [E] = Encounter tile
+  - [e] = Dead Encounter tile
+  - [N] = NPC tile
+  - [n] = Dead NPC tile
+  - [P] = Player tile
+  - [~] = Water tile
+  - [^] = Stairs tile
+  - [I] = Wall tile
+  - [H] = Door tile
+
+  Map Layout Rules:
+  - The map uses grid numbering at the top and left to indicate rows and columns.
+  - Tiles are shown in rows, with indentation to show horizontal offset (for snaking or branching paths).
+  - Indentation aligns tiles under intended columns using spaces.
+  - Blank lines or spaces outside tiles represent solid rock or unexplored void.
+  - The overall map should not form a uniform rectangular grid, but should show an organic, branching dungeon path.
 
   Here is an example of how a map could evolve over a few turns:
 
   Turn 1:
-  [ ]
+     0
+  0 [P]
 
   Turn 2:
-  [ ][E]
+     0  1
+  0 [P][E]
 
   Turn 3:
-  [ ][E][ ]
+     0  1  2
+  0 [ ][e][P]
 
   Turn 4:
-  [ ][E][ ][ ]
-        [ ]
+     0  1  2  3
+  0 [ ][e][ ][P]
+  1       [ ]
 
   Turn 5:
-  [ ][E][ ][ ][ ]
-        [N]
+     0  1  2  3  4
+  0             [P]  
+  1 [ ][e][ ][ ][ ]
+  2       [N]
 
-  You must also follow these rules:
-  - The map should not be a grid of tiles.
-  - The map should visually represent the snaking route through the dungeon, based on the context of the narrative.
-  - Start slow, do not over build the map.
-  - You must consider and follow the current map when updating the map.
-  - You should only make incremental changes to the map for each turn. 
-  - Do not over project further than the narrative and current map supports.
-  - Do not return any text, titles, descriptions, comments, logic, or any other information.
-  - Only return the ASCII map with the incremental changes.
+  Updating Rules:
+  - Always consider the current map when adding to it.
+  - Only make small, incremental changes per turn.
+  - Do not over-project beyond what the narrative supports.
+  - Do not return any text, titles, descriptions, comments, or logic.
+  - Only return the updated ASCII map with incremental changes.
 
 summarize_chapter_system_prompt: |
   You support a game called DUNGEN! which is a generative zork-like dungeon explorer. You will be provided a log of past turns and your task is to summarize the events into a short chapter summary as if recounting events in a book. Do not include any titles such as 'Chapter 1', 'Chapter 2', or ### Chapter Summary:, etc. Do not include any follow up or list of choices at the end, just return the summary.
@@ -102,17 +118,21 @@ response_json_schema:
           player_health_change:
             description: Change in player health (can be negative), e.g., -10 (damage) or +10 (heal)
             type: integer
+            nullable: true
           player_stamina_change:
             description: Change in player stamina (can be negative), e.g., -10 (damage) or +10 (heal)
             type: integer
+            nullable: true
           inventory_update:
             description: List of inventory items to add/remove
             type: array
             items:
               type: string
+            nullable: true
           npc:
             description: Name of NPC encountered
             type: string
+            nullable: true
           npc_health:
             description: Health of NPC (null if not applicable)
             type: integer
@@ -120,6 +140,7 @@ response_json_schema:
           dialog:
             description: Dialog spoken by NPC
             type: string
+            nullable: true
         additionalProperties: false
     required: [narrative, next_reaction, game_status]
     additionalProperties: false

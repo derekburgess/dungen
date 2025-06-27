@@ -158,8 +158,13 @@ class DungenWebUI {
 
     startGame() {
         const gameSettings = document.getElementById('game-settings').value;
+        const mapGenEnabled = document.getElementById('mapgen-checkbox').checked;
         const dimensions = { cols: this.terminal.cols, rows: this.terminal.rows };
-        this.socket.emit('start_game', { settings: gameSettings, dimensions: dimensions });
+        this.socket.emit('start_game', { 
+            settings: gameSettings, 
+            dimensions: dimensions,
+            mapGen: mapGenEnabled 
+        });
     }
 
     stopGame() {

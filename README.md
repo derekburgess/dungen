@@ -19,6 +19,7 @@ cd `dungen`
 
 `pip install -e .`
 
+
 ## USAGE!
 
 Use one of the demo settings files, `fantasy.yaml` or `cyberpunk.yaml`, or copy one and define your own theme and/or character.
@@ -37,6 +38,13 @@ Update the `endpoint_id` in the `config.yaml` file. This is your RunPod endpoint
 
 `dungen --settings file.yaml --vllm`
 
+## Experimental MapGen
+
+An experiment using `o4-mini` to generate ASCII game maps from the narrative content.
+
+Just pass `--map` when running the game.
+
+
 ## WEBUI!
 
 `cd dungen/dungen/webui/`
@@ -46,3 +54,8 @@ Update the `endpoint_id` in the `config.yaml` file. This is your RunPod endpoint
 `python server.py`
 
 Visit `http://127.0.0.1:5000/`
+
+
+### Play it your way! In the console or in the browser.
+
+![Screenshot](assets/screenshot.png)

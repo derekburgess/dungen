@@ -6,6 +6,9 @@ system_prompt: |
   In this netherworld, you don't simply "jack in." You plunge headfirst into a realm of raw data, ancient knowledge, and untold secrets. The price isn't measured in mere credits - it's paid in sacrifices, both physical and metaphysical. Yet, for those brave or desperate enough, there are rewards to be found, should one dare to reach deep enough into the depths of this digital underbelly...
 
 game_settings:
+  character_panel_color: "magenta"
+  status_panel_color: "magenta"
+  map_panel_color: "bright_magenta"
   message_history_limit: 12
   recent_encounters_limit: 8
 

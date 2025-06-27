@@ -24,7 +24,7 @@ class GameProcess:
         self.thread = None
         self.master_fd = None
 
-    def start(self, settings_file, dimensions):
+    def start(self, settings_file, dimensions, map_gen=False):
         if self.running:
             return False
         
@@ -37,6 +37,8 @@ class GameProcess:
         if pid == 0:
             os.chdir(root_dir)
             cmd = [sys.executable, game_script, '--settings', settings_path, '--vllm', '--webui']
+            if map_gen:
+                cmd.append('--map')
             os.execvp(cmd[0], cmd)
         else:
             self.process = pid
@@ -127,8 +129,9 @@ def handle_disconnect():
 def handle_start_game(data):
     settings_file = data.get('settings', 'fantasy.yaml')
     dimensions = data.get('dimensions', {'cols': 80, 'rows': 24})
+    map_gen = data.get('mapGen', False)
     
-    if game_process.start(settings_file, dimensions):
+    if game_process.start(settings_file, dimensions, map_gen):
         emit('game_started')
         
         def forward_output():
