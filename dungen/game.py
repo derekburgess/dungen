@@ -323,7 +323,7 @@ class Game:
     
 
     def update_map(self, input: str) -> str:
-        self.console.print(self.render_info_panel("DUNGEN MASTER", f"{self.config.reasoning_model} | One moment while I update the game map..."))
+        self.console.print(self.render_info_panel("MAPGEN", f"{self.config.reasoning_model} | One moment while I update the game map..."))
         response = self.client.chat.completions.create(
             model=self.config.reasoning_model,
             messages=[
