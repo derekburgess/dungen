@@ -153,7 +153,7 @@ class Game:
 
 
     def render_map_panel(self, title: str, message: str) -> Panel:
-        return Panel(Text(message, justify="center"), title=f"{title}", border_style=self.config.map_panel_color)
+        return Panel(Text(message, justify="left"), title=f"{title}", border_style=self.config.map_panel_color)
 
 
     def render_end_panel(self, title: str, message: str) -> Panel:
