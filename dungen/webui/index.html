@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DUNGEN!</title>
+    <style>
+        html, body {
+            height: 100%;
+        }
+        body {
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            background-color: #000;
+            font-family: monospace;
+            overflow: hidden;
+            font-size: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+        .container {
+            width: 100%;
+            overflow: hidden;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .terminal-container {
+            flex-grow: 1;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        #terminal {
+            height: 100%;
+            width: 100%;
+        }
+        .game-settings {
+            padding: 10px 20px;
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+        }
+        .game-settings select {
+            background-color: #333;
+            color: #00cc66;
+            border: none;
+            padding: 6px 10px;
+            margin-right: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            flex: 6;
+        }
+        .btn {
+            background-color: #00cc66;
+            color: #000;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .btn:hover {
+            background-color: #00cc66;
+        }
+        .btn:disabled {
+            background-color: #666;
+            cursor: not-allowed;
+        }
+        #start-game {
+            margin-right: 10px;
+            flex: 3;
+        }
+        #end-game {
+            background-color: #ff6565;
+            flex: 1;
+        }
+        /* mobile */
+        @media (max-width: 500px) {
+            body {
+                font-size: 8px;
+            }
+            .terminal-container {
+                padding: 10px;
+            }
+            .game-settings {
+                padding: 10px;
+                font-size: 10px;
+            }
+            .btn {
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <div class="game-settings">
+            <select id="game-settings">
+                <option value="fantasy.yaml">Fantasy</option>
+                <option value="cyberpunk.yaml">Cyberpunk</option>
+            </select>
+            <button class="btn" id="start-game">BEGIN</button>
+            <button class="btn" id="end-game">EXIT</button>
+        </div>
+        
+        <div class="terminal-container">
+            <div id="terminal"></div>
+        </div>
+
+    </div>
+
+    <script src="dist/bundle.js"></script>
+</body>
+</html>

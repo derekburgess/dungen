@@ -69,6 +69,8 @@ setup(
         'transformers',
         'torch',
         'accelerate',
+        'flask',
+        'flask-socketio',
     ],
 
     # List additional groups of dependencies here (e.g. development

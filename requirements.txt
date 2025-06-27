@@ -6,3 +6,5 @@ openai
 transformers
 torch
 accelerate
+flask
+flask-socketio

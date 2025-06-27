@@ -2,3 +2,6 @@ __pycache__/
 dungen.egg-info/
 build/
 *.parquet
+node_modules/
+package-lock.json
+dist/
