@@ -40,7 +40,7 @@ Update the `endpoint_id` in the `config.yaml` file. This is your RunPod endpoint
 
 ## Experimental MapGen
 
-An experiment using `o4-mini` to generate ASCII game maps from the narrative content.
+An experiment using o4-mini to generate ASCII game maps from the narrative content.
 
 Just pass `--map` when running the game.
 
