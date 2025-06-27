@@ -30,7 +30,7 @@ This will run the Wayfarer-12B model on your local device. Works, but slow on a 
 
 Passing `--vllm` will run the Wayfarer-12B model on RunPod using a serverless vLLM endpoint.
 
-This assumes you are familair with RunPod and setting a serverless endpoint.
+This assumes you are familair with RunPod and setting up a serverless endpoint.
 
 Set `REQUEST_KEY` env variable. This is your RunPod API Key.
 
