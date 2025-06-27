@@ -297,7 +297,7 @@ class Game:
         if limit and len(self.messages) > limit:
             summary = self.summarize_chapter()
             self.save_chapter(summary)
-            self.console.print(self.render_status_panel("CHAPTER", summary))
+            self.console.print(self.render_response_panel("CHAPTER", summary))
             self.messages = [
                 self.messages[0],
                 {"role": "system", "content": f"Once upon a time...\n{summary}"},
@@ -478,7 +478,7 @@ class Game:
         self.console.print(self.render_char_panel("CHARACTER", character_info))
         
         if self.last_chapter:
-            self.console.print(self.render_status_panel("ONCE UPON A TIME...", self.last_chapter))
+            self.console.print(self.render_response_panel("ONCE UPON A TIME...", self.last_chapter))
 
         starting_input = self.turn_context("So it begins...")
         intro_content = self.generate_narrative(starting_input)
