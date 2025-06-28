@@ -328,9 +328,9 @@ class Game:
     
 
     def update_map(self, input: str) -> str:
-        self.console.print(self.render_info_panel("MAPGEN", f"{self.config.image_model} | One moment while I generate the map tile..."))
-        prompt = f"{self.config.tile_generation_system_prompt}\n\n{input}"
         if self.webui:
+            self.console.print(self.render_info_panel("MAPGEN", f"{self.config.image_model} | One moment while I generate the map tile..."))
+            prompt = f"{self.config.tile_generation_system_prompt}\n\n{input}"
             save_dir = os.path.join("assets", "mini-map")
             os.makedirs(save_dir, exist_ok=True)
             img = self.client.images.generate(
