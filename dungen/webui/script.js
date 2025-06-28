@@ -10,6 +10,8 @@ class DungenWebUI {
         this.gameRunning = false;
         this.inputBuffer = '';
         this.waitingForInput = false;
+        this.mapTilesContainer = null;
+        this.mapRefreshInterval = null;
         this.init();
     }
 
@@ -17,6 +19,8 @@ class DungenWebUI {
         this.initTerminal();
         this.initSocket();
         this.bindEvents();
+        this.mapTilesContainer = document.getElementById('map-tiles-container');
+        this.loadMapTiles();
     }
 
     initTerminal() {
@@ -156,15 +160,41 @@ class DungenWebUI {
         });
     }
 
+    async loadMapTiles() {
+        try {
+            const response = await fetch('/api/map-tiles');
+            const tiles = await response.json();
+            this.displayMapTiles(tiles);
+        } catch (error) {
+            console.error('Failed to load map tiles:', error);
+        }
+    }
+
+    displayMapTiles(tiles) {
+        this.mapTilesContainer.innerHTML = '';
+        
+        tiles.forEach(tile => {
+            const tileElement = document.createElement('img');
+            tileElement.src = `/assets/mini-map/${tile}`;
+            tileElement.className = 'map-tile';
+            tileElement.alt = `Map tile ${tile}`;
+            tileElement.title = `Turn ${tile.split('_')[1].split('.')[0]}`;
+            this.mapTilesContainer.appendChild(tileElement);
+        });
+    }
+
     startGame() {
         const gameSettings = document.getElementById('game-settings').value;
-        const mapGenEnabled = document.getElementById('mapgen-checkbox').checked;
         const dimensions = { cols: this.terminal.cols, rows: this.terminal.rows };
         this.socket.emit('start_game', { 
             settings: gameSettings, 
             dimensions: dimensions,
-            mapGen: mapGenEnabled 
+            mapGen: true
         });
+        
+        this.mapTilesContainer.innerHTML = '';
+
+        this.startMapRefresh();
     }
 
     stopGame() {
@@ -173,6 +203,24 @@ class DungenWebUI {
         }
         this.terminal.write('\r\n');
         this.terminal.writeln('\r\n\x1b[33mFarewell, adventurer!\x1b[0m');
+        
+        this.mapTilesContainer.innerHTML = '';
+        
+        this.stopMapRefresh();
+    }
+
+    startMapRefresh() {
+        this.stopMapRefresh();
+        this.mapRefreshInterval = setInterval(() => {
+            this.loadMapTiles();
+        }, 2000);
+    }
+
+    stopMapRefresh() {
+        if (this.mapRefreshInterval) {
+            clearInterval(this.mapRefreshInterval);
+            this.mapRefreshInterval = null;
+        }
     }
 
     updateButtons() {

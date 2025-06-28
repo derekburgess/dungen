@@ -1,9 +1,11 @@
 import os
+import io
 import time
 import yaml
 import argparse
 import pandas as pd
 import json
+import base64
 from dataclasses import dataclass, field
 from typing import List
 from rich.console import Console
@@ -14,6 +16,7 @@ import transformers
 import torch
 import requests
 import random
+from PIL import Image
 
 
 @dataclass
@@ -60,14 +63,16 @@ class Config:
         self.endpoint_id = model_parameters.get("endpoint_id")
         self.assistant_model = model_parameters.get("assistant_model", "gpt-4o-mini")
         self.reasoning_model = model_parameters.get("reasoning_model", "o4-mini")
-        self.response_assistant_system_prompt = model_parameters.get("response_assistant_system_prompt")
-        self.response_json_schema = model_parameters.get("response_json_schema")
-        
+        self.image_model = model_parameters.get("image_model", "gpt-image-1")
+
         system_prompt_base = model_parameters["system_prompt_base"]
         narrative_prompt = game_parameters["system_prompt"]
         self.narrative_prompt = narrative_prompt
         self.system_prompt = f"{narrative_prompt}\n\n{system_prompt_base}"
+        self.response_assistant_system_prompt = model_parameters.get("response_assistant_system_prompt")
+        self.response_json_schema = model_parameters.get("response_json_schema")
         self.map_generator_system_prompt = model_parameters.get("map_generation_system_prompt")
+        self.tile_generation_system_prompt = model_parameters.get("tile_generation_system_prompt")
         self.summarize_chapter_system_prompt = model_parameters.get("summarize_chapter_system_prompt")
         
         game_settings = game_parameters.get("game_settings", {})
@@ -323,25 +328,44 @@ class Game:
     
 
     def update_map(self, input: str) -> str:
-        self.console.print(self.render_info_panel("MAPGEN", f"{self.config.reasoning_model} | One moment while I update the game map..."))
-        response = self.client.chat.completions.create(
-            model=self.config.reasoning_model,
-            messages=[
-                {"role": "system", "content": self.config.map_generator_system_prompt},
-                {"role": "user", "content": input},
-            ],
-        )
-        #self.console.print(self.render_debug_panel("DEBUG [INPUT]", f"[SYSTEM PROMPT]\n{self.config.map_generator_system_prompt}\n\n[INPUT]\n{input}"))
-        #self.console.print(self.render_debug_panel("DEBUG [MAP]", response.choices[0].message.content.strip()))
-        
-        content = response.choices[0].message.content.strip()
-        
-        if content.startswith("```") and content.endswith("```"):
-            content = content[3:-3].strip()
-        elif content.startswith("`") and content.endswith("`"):
-            content = content[1:-1].strip()
-        
-        return content
+        self.console.print(self.render_info_panel("MAPGEN", f"{self.config.image_model} | One moment while I generate the map tile..."))
+        prompt = f"{self.config.tile_generation_system_prompt}\n\n{input}"
+        if self.webui:
+            save_dir = os.path.join("assets", "mini-map")
+            os.makedirs(save_dir, exist_ok=True)
+            img = self.client.images.generate(
+                model=self.config.image_model,
+                prompt=prompt,
+                n=1,
+                size="1024x1024",
+            )
+
+            image_bytes = base64.b64decode(img.data[0].b64_json)
+            image = Image.open(io.BytesIO(image_bytes))
+            resized_image = image.resize((128, 128), Image.Resampling.LANCZOS)
+            save_path = os.path.join(save_dir, f"tile_{self.turn}.png")
+            resized_image.save(save_path)
+            self.console.print(self.render_info_panel("MAPGEN", f"{self.config.image_model} | Done! Ready for next turn..."))
+        else:
+            self.console.print(self.render_info_panel("MAPGEN", f"{self.config.reasoning_model} | One moment while I update the game map..."))
+            response = self.client.chat.completions.create(
+                model=self.config.reasoning_model,
+                messages=[
+                    {"role": "system", "content": self.config.map_generator_system_prompt},
+                    {"role": "user", "content": input},
+                ],
+            )
+            #self.console.print(self.render_debug_panel("DEBUG [INPUT]", f"[SYSTEM PROMPT]\n{self.config.map_generator_system_prompt}\n\n[INPUT]\n{input}"))
+            #self.console.print(self.render_debug_panel("DEBUG [MAP]", response.choices[0].message.content.strip()))
+            
+            content = response.choices[0].message.content.strip()
+            
+            if content.startswith("```") and content.endswith("```"):
+                content = content[3:-3].strip()
+            elif content.startswith("`") and content.endswith("`"):
+                content = content[1:-1].strip()
+            
+            return content
 
 
     def parse_response(self, content: str):
@@ -437,15 +461,21 @@ class Game:
         character_info = f"{self.player.health} HP | {self.player.stamina} STA"
         self.console.print(self.render_char_panel("CHARACTER", character_info))
 
+        if self.webui:
+            map_input = f"Narrative: {narrative}"
+
         if self.current_map:
             map_input = f"Narrative: {narrative}\n\nCurrent Map:\n{self.current_map}"
         else:
             map_input = f"Narrative: {narrative}"
         
         if self.map_generation:
-            updated_map = self.update_map(map_input)
-            self.console.print(self.render_map_panel("MAP", updated_map))
-            self.current_map = updated_map
+            if self.webui:
+                generate_tile = self.update_map(map_input)
+            else:
+                updated_map = self.update_map(map_input)
+                self.console.print(self.render_map_panel("MAP", updated_map))
+                self.current_map = updated_map
         
         if self.player.health <= 0:
             self.console.print(self.render_end_panel("DUNGEN MASTER", "muhahahaha... You have perished in the DUNGEN!"))
@@ -491,15 +521,21 @@ class Game:
         character_info = f"{self.player.health} HP | {self.player.stamina} STA"
         self.console.print(self.render_char_panel("CHARACTER", character_info))
 
+        if self.webui:
+            map_input = f"Narrative: {narrative}"
+
         if self.current_map:
             map_input = f"Narrative: {narrative}\n\nCurrent Map:\n{self.current_map}"
         else:
             map_input = f"Narrative: {narrative}"
         
         if self.map_generation:
-            updated_map = self.update_map(map_input)
-            self.console.print(self.render_map_panel("MAP", updated_map))
-            self.current_map = updated_map
+            if self.webui:
+                generate_tile = self.update_map(map_input)
+            else:
+                updated_map = self.update_map(map_input)
+                self.console.print(self.render_map_panel("MAP", updated_map))
+                self.current_map = updated_map
 
         while self.player.health > 0:
             self.turn += 1

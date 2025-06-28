@@ -71,6 +71,7 @@ setup(
         'accelerate',
         'flask',
         'flask-socketio',
+        'pillow',
     ],
 
     # List additional groups of dependencies here (e.g. development
