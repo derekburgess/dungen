@@ -44,6 +44,19 @@
             font-size: 12px;
             flex: 6;
         }
+        .game-settings input[type="checkbox"] {
+            margin-right: 10px;
+            transform: scale(1.2);
+            accent-color: #00cc66;
+        }
+        .game-settings label {
+            color: #00cc66;
+            font-family: monospace;
+            font-size: 12px;
+            margin-right: 10px;
+            display: flex;
+            align-items: center;
+        }
         .btn {
             background-color: #00cc66;
             color: #000;
@@ -73,11 +86,12 @@
             height: 128px;
             box-sizing: border-box;
             overflow: scroll-x;
+            overflow-y: hidden;
             display: flex;
             flex-direction: row;
             align-items: center;
             overflow-x: auto;
-            background-color: #111;
+            background: linear-gradient(to bottom, #000, #111);
         }
         .map-tile {
             width: 128px;
@@ -115,6 +129,11 @@
     <div class="container">
 
         <div class="game-settings">
+            <label>
+                <input type="checkbox" id="mapgen-checkbox">
+                MapGen
+            </label>
+
             <select id="game-settings">
                 <option value="fantasy.yaml">Fantasy</option>
                 <option value="cyberpunk.yaml">Cyberpunk</option>

@@ -20,7 +20,7 @@ class DungenWebUI {
         this.initSocket();
         this.bindEvents();
         this.mapTilesContainer = document.getElementById('map-tiles-container');
-        this.loadMapTiles();
+        this.toggleMapContainer();
     }
 
     initTerminal() {
@@ -126,6 +126,8 @@ class DungenWebUI {
         this.socket.on('game_stopped', () => {
             this.gameRunning = false;
             this.updateButtons();
+            this.mapTilesContainer.innerHTML = '';
+            this.stopMapRefresh();
         });
 
         this.socket.on('error', (error) => {
@@ -136,6 +138,7 @@ class DungenWebUI {
     bindEvents() {
         const startBtn = document.getElementById('start-game');
         const endBtn = document.getElementById('end-game');
+        const mapgenCheckbox = document.getElementById('mapgen-checkbox');
 
         startBtn.addEventListener('click', () => this.startGame());
         startBtn.addEventListener('touchstart', (e) => {
@@ -149,6 +152,10 @@ class DungenWebUI {
             this.stopGame();
         });
 
+        mapgenCheckbox.addEventListener('change', () => {
+            this.toggleMapContainer();
+        });
+
         document.getElementById('terminal').addEventListener('click', () => {
             this.terminal.focus();
         });
@@ -160,7 +167,25 @@ class DungenWebUI {
         });
     }
 
+    toggleMapContainer() {
+        const mapgenCheckbox = document.getElementById('mapgen-checkbox');
+        const mapTilesContainer = document.getElementById('map-tiles-container');
+        
+        if (mapgenCheckbox.checked) {
+            mapTilesContainer.style.display = 'flex';
+        } else {
+            mapTilesContainer.style.display = 'none';
+            mapTilesContainer.innerHTML = '';
+            this.stopMapRefresh();
+        }
+    }
+
     async loadMapTiles() {
+        const mapgenCheckbox = document.getElementById('mapgen-checkbox');
+        if (!mapgenCheckbox.checked) {
+            return;
+        }
+
         try {
             const response = await fetch('/api/map-tiles');
             const tiles = await response.json();
@@ -171,6 +196,11 @@ class DungenWebUI {
     }
 
     displayMapTiles(tiles) {
+        const mapgenCheckbox = document.getElementById('mapgen-checkbox');
+        if (!mapgenCheckbox.checked) {
+            return;
+        }
+
         this.mapTilesContainer.innerHTML = '';
         
         tiles.forEach(tile => {
@@ -185,16 +215,20 @@ class DungenWebUI {
 
     startGame() {
         const gameSettings = document.getElementById('game-settings').value;
+        const mapgenCheckbox = document.getElementById('mapgen-checkbox');
         const dimensions = { cols: this.terminal.cols, rows: this.terminal.rows };
+        
         this.socket.emit('start_game', { 
             settings: gameSettings, 
             dimensions: dimensions,
-            mapGen: true
+            mapGen: mapgenCheckbox.checked
         });
         
         this.mapTilesContainer.innerHTML = '';
 
-        this.startMapRefresh();
+        if (mapgenCheckbox.checked) {
+            this.startMapRefresh();
+        }
     }
 
     stopGame() {
@@ -210,6 +244,11 @@ class DungenWebUI {
     }
 
     startMapRefresh() {
+        const mapgenCheckbox = document.getElementById('mapgen-checkbox');
+        if (!mapgenCheckbox.checked) {
+            return;
+        }
+
         this.stopMapRefresh();
         this.mapRefreshInterval = setInterval(() => {
             this.loadMapTiles();

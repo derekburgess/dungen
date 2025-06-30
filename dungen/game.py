@@ -328,7 +328,7 @@ class Game:
     
 
     def update_map(self, input: str) -> str:
-        if self.webui:
+        if self.webui and self.map_generation:
             self.console.print(self.render_info_panel("MAPGEN", f"{self.config.image_model} | One moment while I generate the map tile..."))
             prompt = f"{self.config.tile_generation_system_prompt}\n\n{input}"
             save_dir = os.path.join("assets", "mini-map")
@@ -484,7 +484,9 @@ class Game:
 
 
     def start(self):
-        if self.map_generation:
+        if self.webui and self.map_generation:
+            model_info = f"{self.config.narrative_model} (Dungen Master) | {self.config.assistant_model} (Assistant) | {self.config.image_model} (MapGen)"
+        elif self.map_generation:
             model_info = f"{self.config.narrative_model} (Dungen Master) | {self.config.assistant_model} (Assistant) | {self.config.reasoning_model} (MapGen)"
         else:
             model_info = f"{self.config.narrative_model} (Dungen Master) | {self.config.assistant_model} (Assistant)"
