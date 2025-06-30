@@ -26,17 +26,8 @@
             display: flex;
             flex-direction: column;
         }
-        .terminal-container {
-            flex-grow: 1;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-        #terminal {
-            height: 100%;
-            width: 100%;
-        }
         .game-settings {
-            padding: 10px 20px;
+            padding: 10px 0px;
             display: flex;
             flex-direction: row;
             justify-content: center;
@@ -91,6 +82,31 @@
             background-color: #ff6565;
             flex: 1;
         }
+        .map-tiles-container {
+            height: 128px;
+            box-sizing: border-box;
+            overflow: scroll-x;
+            overflow-y: hidden;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            overflow-x: auto;
+            background: linear-gradient(to bottom, #000, #111);
+        }
+        .map-tile {
+            width: 128px;
+            height: 128px;
+            flex-shrink: 0;
+        }
+        .terminal-container {
+            flex-grow: 1;
+            padding: 20px 0px;
+            box-sizing: border-box;
+        }
+        #terminal {
+            height: 100%;
+            width: 100%;
+        }
         /* mobile */
         @media (max-width: 500px) {
             body {
@@ -117,6 +133,7 @@
                 <input type="checkbox" id="mapgen-checkbox">
                 MapGen
             </label>
+
             <select id="game-settings">
                 <option value="fantasy.yaml">Fantasy</option>
                 <option value="cyberpunk.yaml">Cyberpunk</option>
@@ -128,6 +145,8 @@
         <div class="terminal-container">
             <div id="terminal"></div>
         </div>
+
+        <div class="map-tiles-container" id="map-tiles-container"></div>
 
     </div>
 

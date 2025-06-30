@@ -10,6 +10,8 @@ class DungenWebUI {
         this.gameRunning = false;
         this.inputBuffer = '';
         this.waitingForInput = false;
+        this.mapTilesContainer = null;
+        this.mapRefreshInterval = null;
         this.init();
     }
 
@@ -17,6 +19,8 @@ class DungenWebUI {
         this.initTerminal();
         this.initSocket();
         this.bindEvents();
+        this.mapTilesContainer = document.getElementById('map-tiles-container');
+        this.toggleMapContainer();
     }
 
     initTerminal() {
@@ -122,6 +126,8 @@ class DungenWebUI {
         this.socket.on('game_stopped', () => {
             this.gameRunning = false;
             this.updateButtons();
+            this.mapTilesContainer.innerHTML = '';
+            this.stopMapRefresh();
         });
 
         this.socket.on('error', (error) => {
@@ -132,6 +138,7 @@ class DungenWebUI {
     bindEvents() {
         const startBtn = document.getElementById('start-game');
         const endBtn = document.getElementById('end-game');
+        const mapgenCheckbox = document.getElementById('mapgen-checkbox');
 
         startBtn.addEventListener('click', () => this.startGame());
         startBtn.addEventListener('touchstart', (e) => {
@@ -145,6 +152,10 @@ class DungenWebUI {
             this.stopGame();
         });
 
+        mapgenCheckbox.addEventListener('change', () => {
+            this.toggleMapContainer();
+        });
+
         document.getElementById('terminal').addEventListener('click', () => {
             this.terminal.focus();
         });
@@ -156,15 +167,68 @@ class DungenWebUI {
         });
     }
 
+    toggleMapContainer() {
+        const mapgenCheckbox = document.getElementById('mapgen-checkbox');
+        const mapTilesContainer = document.getElementById('map-tiles-container');
+        
+        if (mapgenCheckbox.checked) {
+            mapTilesContainer.style.display = 'flex';
+        } else {
+            mapTilesContainer.style.display = 'none';
+            mapTilesContainer.innerHTML = '';
+            this.stopMapRefresh();
+        }
+    }
+
+    async loadMapTiles() {
+        const mapgenCheckbox = document.getElementById('mapgen-checkbox');
+        if (!mapgenCheckbox.checked) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/map-tiles');
+            const tiles = await response.json();
+            this.displayMapTiles(tiles);
+        } catch (error) {
+            console.error('Failed to load map tiles:', error);
+        }
+    }
+
+    displayMapTiles(tiles) {
+        const mapgenCheckbox = document.getElementById('mapgen-checkbox');
+        if (!mapgenCheckbox.checked) {
+            return;
+        }
+
+        this.mapTilesContainer.innerHTML = '';
+        
+        tiles.forEach(tile => {
+            const tileElement = document.createElement('img');
+            tileElement.src = `/assets/mini-map/${tile}`;
+            tileElement.className = 'map-tile';
+            tileElement.alt = `Map tile ${tile}`;
+            tileElement.title = `Turn ${tile.split('_')[1].split('.')[0]}`;
+            this.mapTilesContainer.appendChild(tileElement);
+        });
+    }
+
     startGame() {
         const gameSettings = document.getElementById('game-settings').value;
-        const mapGenEnabled = document.getElementById('mapgen-checkbox').checked;
+        const mapgenCheckbox = document.getElementById('mapgen-checkbox');
         const dimensions = { cols: this.terminal.cols, rows: this.terminal.rows };
+        
         this.socket.emit('start_game', { 
             settings: gameSettings, 
             dimensions: dimensions,
-            mapGen: mapGenEnabled 
+            mapGen: mapgenCheckbox.checked
         });
+        
+        this.mapTilesContainer.innerHTML = '';
+
+        if (mapgenCheckbox.checked) {
+            this.startMapRefresh();
+        }
     }
 
     stopGame() {
@@ -173,6 +237,29 @@ class DungenWebUI {
         }
         this.terminal.write('\r\n');
         this.terminal.writeln('\r\n\x1b[33mFarewell, adventurer!\x1b[0m');
+        
+        this.mapTilesContainer.innerHTML = '';
+        
+        this.stopMapRefresh();
+    }
+
+    startMapRefresh() {
+        const mapgenCheckbox = document.getElementById('mapgen-checkbox');
+        if (!mapgenCheckbox.checked) {
+            return;
+        }
+
+        this.stopMapRefresh();
+        this.mapRefreshInterval = setInterval(() => {
+            this.loadMapTiles();
+        }, 2000);
+    }
+
+    stopMapRefresh() {
+        if (this.mapRefreshInterval) {
+            clearInterval(this.mapRefreshInterval);
+            this.mapRefreshInterval = null;
+        }
     }
 
     updateButtons() {

@@ -40,9 +40,11 @@ Update the `endpoint_id` in the `config.yaml` file. This is your RunPod endpoint
 
 ## Experimental MapGen
 
-An experiment using o4-mini to generate ASCII game maps from the narrative content.
+An experiment using o4-mini to generate ASCII game maps from the narrative content and a fixed set of "ASCII map tiles"
 
-Just pass `--map` when running the game.
+Pass `--map` when running the game.
+
+Additionally, when running the WebUI (See below), selecting MapGen in the UI, will use gpt-image-1 to generate stylistic images based on the games narrative, with the goal of generating "map tiles". *This is unfortunately expensive, hence "experimental",  and local/vllm support will be added.
 
 
 ## WEBUI!
@@ -59,3 +61,5 @@ Visit `http://127.0.0.1:5000/`
 ### Play it your way! In the console or in the browser.
 
 ![Screenshot](assets/screenshot.png)
+
+*Or even on a phone... ;P

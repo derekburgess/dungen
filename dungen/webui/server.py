@@ -8,12 +8,24 @@ import struct
 import select
 import subprocess
 import pty
+import shutil
 from flask import Flask, send_from_directory
 from flask_socketio import SocketIO, emit
+import glob
+import json
 
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
+
+
+def remove_map_tiles():
+    root_dir = os.path.join(os.path.dirname(__file__), '..', '..')
+    tiles_dir = os.path.join(root_dir, 'assets', 'mini-map')
+    
+    tile_files = glob.glob(os.path.join(tiles_dir, 'tile_*.png'))
+    for tile_file in tile_files:
+        os.remove(tile_file)
 
 
 class GameProcess:
@@ -27,6 +39,9 @@ class GameProcess:
     def start(self, settings_file, dimensions, map_gen=False):
         if self.running:
             return False
+        
+        if map_gen:
+            remove_map_tiles()
         
         game_script = os.path.join(os.path.dirname(__file__), '..', 'game.py')
         root_dir = os.path.join(os.path.dirname(__file__), '..', '..')
@@ -94,7 +109,6 @@ class GameProcess:
 
     def resize(self, dimensions):
         if self.master_fd:
-
             rows = dimensions.get('rows', 24)
             cols = dimensions.get('cols', 80)
             
@@ -113,6 +127,22 @@ def index():
 @app.route('/dist/<path:filename>')
 def dist(filename):
     return send_from_directory('dist', filename)
+
+
+@app.route('/assets/mini-map/<path:filename>')
+def serve_map_tiles(filename):
+    root_dir = os.path.join(os.path.dirname(__file__), '..', '..')
+    return send_from_directory(os.path.join(root_dir, 'assets', 'mini-map'), filename)
+
+
+@app.route('/api/map-tiles')
+def get_map_tiles():
+    root_dir = os.path.join(os.path.dirname(__file__), '..', '..')
+    tiles_dir = os.path.join(root_dir, 'assets', 'mini-map')
+    tile_files = glob.glob(os.path.join(tiles_dir, 'tile_*.png'))
+    tile_files.sort(key=lambda x: int(x.split('_')[-1].split('.')[0]))
+    tiles = [os.path.basename(f) for f in tile_files]
+    return json.dumps(tiles)
 
 
 @socketio.on('connect')
@@ -150,6 +180,9 @@ def handle_start_game(data):
 @socketio.on('stop_game')
 def handle_stop_game():
     game_process.stop()
+
+    remove_map_tiles()
+    
     emit('game_stopped')
 
 
