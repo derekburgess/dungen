@@ -392,8 +392,19 @@ class Game:
         health_change = meta.get("player_health_change")
         stamina_change = meta.get("player_stamina_change")
         
-        self.player.health += health_change if health_change is not None else 0
-        self.player.stamina += stamina_change if stamina_change is not None else 0
+        if health_change is not None:
+            try:
+                health_change = int(health_change)
+                self.player.health += health_change
+            except (ValueError, TypeError):
+                pass
+        
+        if stamina_change is not None:
+            try:
+                stamina_change = int(stamina_change)
+                self.player.stamina += stamina_change
+            except (ValueError, TypeError):
+                pass
 
         inventory_update = meta.get("inventory_update", "")
         if inventory_update:
@@ -410,11 +421,18 @@ class Game:
         npc = meta.get("npc", "")
         dialog = meta.get("dialog", "")
         if npc or dialog:
+            damage = 0
+            if health_change is not None:
+                try:
+                    damage = -int(health_change)
+                except (ValueError, TypeError):
+                    pass
+            
             entry = EncounterEntry(
                 turn=self.turn,
                 npc=npc,
                 npc_health=meta.get("npc_health"),
-                damage=-(health_change if health_change is not None else 0),
+                damage=damage,
                 dialog=dialog,
             )
             self.encounter_log.append(entry)
