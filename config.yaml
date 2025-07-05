@@ -8,7 +8,7 @@ temperature: 0.8
 repetition_penalty: 1.05
 min_p: 0.025
 
-endpoint_id: 13dt9xrkm70mz8
+endpoint_id: RUNPOD POD ID
 
 system_prompt_base: |
   As the DUNGEN! Master, you should try to challenge the player. DON'T hold back. Always try to out smart the player during encounters and kill the player during violent encounters.
