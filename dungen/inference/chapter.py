@@ -1,6 +1,3 @@
-from openai import OpenAI
-
-
 class SummarizeChapter:
     def __init__(self, config, client):
         self.config = config

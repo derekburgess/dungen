@@ -23,7 +23,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.0.1',
+    version='0.1.0',
 
     description='A generative zork-like dungeon explorer that dynamically creates a world of mystery, peril, and unexpected discoveries. As you descend deeper into LLM generated labyrinths, your choices will shape the story, the dangers you face, and the secrets you uncover.',
     long_description=long_description,
@@ -37,7 +37,7 @@ setup(
         #   3 - Alpha
         #   4 - Beta
         #   5 - Production/Stable
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
 
         # Indicate who your project is intended for
         'Intended Audience :: Developers',
@@ -46,7 +46,7 @@ setup(
     ],
 
     # What does your project relate to?
-    keywords='game, zork-like, dungeon, adventure, text-based',
+    keywords='game, zork-like, dungeon, adventure, text-based, AI, LLM, OpenAI, RunPod',
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
@@ -101,7 +101,7 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     entry_points={
        'console_scripts': [
-           'dungen = dungen.game:main',
+           'dungen = dungen.main:main',
        ],
     },
 )

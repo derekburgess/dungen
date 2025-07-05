@@ -3,7 +3,6 @@ import random
 import requests
 import transformers
 import torch
-from openai import OpenAI
 
 
 class NarrativeGeneration:

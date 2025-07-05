@@ -1,6 +1,3 @@
-from openai import OpenAI
-
-
 class ResponseCheck:
     def __init__(self, config, client):
         self.config = config

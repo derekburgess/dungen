@@ -43,7 +43,7 @@ class GameProcess:
         if map_gen:
             remove_map_tiles()
         
-        game_script = os.path.join(os.path.dirname(__file__), '..', 'game.py')
+        game_script = os.path.join(os.path.dirname(__file__), '..', 'main.py')
         root_dir = os.path.join(os.path.dirname(__file__), '..', '..')
         settings_path = os.path.join(root_dir, settings_file)
         

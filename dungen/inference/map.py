@@ -2,7 +2,6 @@ import os
 import io
 import base64
 from PIL import Image
-from openai import OpenAI
 
 
 class GenerateMap:
