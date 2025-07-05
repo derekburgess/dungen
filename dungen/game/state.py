@@ -39,7 +39,7 @@ class GameState:
     def increment_turn(self):
         self.turn += 1
 
-    def is_player_alive(self):
+    def check_player_status(self):
         return self.player.health > 0
 
     def update_map(self, new_map):

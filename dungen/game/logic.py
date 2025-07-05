@@ -84,7 +84,7 @@ class GameLogic:
             )
             self.game_state.encounter_log.append(entry)
 
-    def play_turn(self, input: str, generate_narrative_callback, response_check, console, panels, map_generation, webui, generate_map):
+    def play_turn(self, input: str, generate_narrative_callback, response_check, map_generation, generate_map, webui, console, panels):
         turn_input = self.turn_context(input)
         content = generate_narrative_callback(turn_input)
         
@@ -141,7 +141,7 @@ class GameLogic:
                 console.print(panels.render_map_panel("MAP", updated_map))
                 self.game_state.update_map(updated_map)
         
-        if not self.game_state.is_player_alive():
+        if not self.game_state.check_player_status():
             console.print(panels.render_end_panel("DUNGEN MASTER", "muhahahaha... You have perished in the DUNGEN!"))
             return False
         return True

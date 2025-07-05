@@ -18,11 +18,11 @@ class NarrativeManager:
         dataframe.to_parquet(self.game_state.narrative_file, index=False)
         self.game_state.chapter_index += 1
 
-    def should_summarize(self) -> bool:
+    def summary_check(self) -> bool:
         limit = self.game_state.config.message_history_limit
         return limit and len(self.game_state.messages) > limit
 
-    def reset_messages_with_summary(self, summary: str):
+    def reset_messages_list(self, summary: str):
         self.game_state.messages = [
             self.game_state.messages[0],
             {"role": "system", "content": f"Once upon a time...\n{summary}"},

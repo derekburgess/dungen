@@ -11,7 +11,7 @@ from .narrative import NarrativeManager
 
 
 class Game:
-    def __init__(self, inference_config_path: str = "config.yaml", game_settings_path: str = None, map_generation: bool = False, remote_inference: bool = False, webui: bool = False) -> None:
+    def __init__(self, inference_config_path: str = "config.yaml", game_settings_path: str = None, remote_inference: bool = False, map_generation: bool = False, webui: bool = False) -> None:
         self.config = Config(inference_config_path, game_settings_path)
         self.map_generation = map_generation
         self.webui = webui
@@ -35,11 +35,11 @@ class Game:
     def generate_narrative(self, input: str) -> str:
         content = self.narrative_generation.generate_narrative(input, self.state.messages, self.console, self.panels)
         
-        if self.narrative_manager.should_summarize():
+        if self.narrative_manager.summary_check():
             summary = self.summarize_chapter.summarize_chapter(self.state.messages)
             self.narrative_manager.save_chapter(summary)
             self.console.print(self.panels.render_response_panel("CHAPTER", summary))
-            self.narrative_manager.reset_messages_with_summary(summary)
+            self.narrative_manager.reset_messages_list(summary)
         return content
 
     def play_turn(self, input: str):
@@ -47,11 +47,11 @@ class Game:
             input, 
             self.generate_narrative,
             self.response_check, 
-            self.console, 
-            self.panels, 
-            self.map_generation, 
+            self.map_generation,
+            self.generate_map,
             self.webui, 
-            self.generate_map
+            self.console, 
+            self.panels
         )
 
     def start(self):
@@ -109,7 +109,7 @@ class Game:
                 self.console.print(self.panels.render_map_panel("MAP", updated_map))
                 self.state.update_map(updated_map)
 
-        while self.state.is_player_alive():
+        while self.state.check_player_status():
             self.state.increment_turn()
             if self.webui:
                 action = input()
