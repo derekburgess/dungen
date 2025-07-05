@@ -7,6 +7,11 @@ A generative zork-like dungeon explorer that dynamically creates a world of myst
 Uses a combination of LatitudeGames/Wayfarer-12B (Narrative) and OpenAI (Assistant).
 
 
+## Updates
+
+v0.1.0 | Refactored into small files, easier for LLM's to handle and for humans to reason about.
+
+
 ## SETUP!
 
 Create an environment...
