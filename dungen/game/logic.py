@@ -84,11 +84,11 @@ class GameLogic:
             )
             self.game_state.encounter_log.append(entry)
 
-    def play_turn(self, input: str, generate_narrative_callback, response_check, map_generation, generate_map, webui, console, panels):
+    def play_turn(self, input: str, generate_narrative_callback, structured_response, map_generation, generate_map, webui, console, panels):
         turn_input = self.turn_context(input)
         content = generate_narrative_callback(turn_input)
         
-        json_content = response_check.check_response(content)
+        json_content = structured_response.structured_response(content)
         narrative, meta = self.parse_response(json_content)
         self.apply_metadata(meta)
         console.print(panels.render_response_panel("DUNGEN MASTER", narrative))

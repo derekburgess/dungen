@@ -1,9 +1,9 @@
-class ResponseCheck:
+class StructuredResponse:
     def __init__(self, config, client):
         self.config = config
         self.client = client
 
-    def check_response(self, input: str) -> str:
+    def structured_response(self, input: str) -> str:
         response = self.client.chat.completions.create(
             model=self.config.assistant_model,
             messages=[

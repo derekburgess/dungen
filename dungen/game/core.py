@@ -4,7 +4,7 @@ from rich.console import Console
 
 from ..models import Config
 from ..ui import Panels
-from ..inference import NarrativeGeneration, ResponseCheck, SummarizeChapter, GenerateMap
+from ..inference import NarrativeGeneration, StructuredResponse, SummarizeChapter, GenerateMap
 from .state import GameState
 from .logic import GameLogic
 from .narrative import NarrativeManager
@@ -28,7 +28,7 @@ class Game:
         self.narrative_manager = NarrativeManager(self.state)
 
         self.narrative_generation = NarrativeGeneration(self.config, self.client, self.request_key, self.remote_inference)
-        self.response_check = ResponseCheck(self.config, self.client)
+        self.structured_response = StructuredResponse(self.config, self.client)
         self.summarize_chapter = SummarizeChapter(self.config, self.client)
         self.generate_map = GenerateMap(self.config, self.client)
 
@@ -46,7 +46,7 @@ class Game:
         return self.logic.play_turn(
             input, 
             self.generate_narrative,
-            self.response_check, 
+            self.structured_response, 
             self.map_generation,
             self.generate_map,
             self.webui, 
@@ -85,7 +85,7 @@ class Game:
 
         starting_input = self.logic.turn_context("So it begins...")
         intro_content = self.generate_narrative(starting_input)
-        intro_json = self.response_check.check_response(intro_content)
+        intro_json = self.structured_response.structured_response(intro_content)
         narrative, meta = self.logic.parse_response(intro_json)
 
         self.console.print(self.panels.render_response_panel("DUNGEN MASTER", narrative))
